@@ -1,0 +1,16 @@
+[package]
+name = "acid4sigmas-db-api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.89"
+sqlx = {version = "0.8.0", features = ["postgres", "runtime-tokio-rustls", "chrono"]}
+actix-web = "4.9.0"
+tokio = { version = "1.39.3", features = ["full"] }
+toml = "0.8.19"
+actix-ws = "0.3.0"
+futures-util = "0.3.31"
+lazy_static = "1.5.0"
+acid4sigmas-models = { git = "https://github.com/acid4sigmas/acid4sigmas-model.git" }
+serde_json = "1.0.128"
