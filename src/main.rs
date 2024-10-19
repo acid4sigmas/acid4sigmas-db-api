@@ -11,6 +11,8 @@ use tokio::time::Duration;
 
 mod db;
 mod secrets;
+mod tokio_spawner;
+mod cache;
 
 async fn db_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, Error> {
     let query = req.query_string();
@@ -130,7 +132,7 @@ async fn db_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, E
 async fn main() -> std::io::Result<()> {
     initialize_models();
 
-    tokio::spawn(async move {
+    tokio_spawner::TokioSpawner::spawn(async move {
         loop {
             match db::Database::init(PathBuf::from("schema.sql")).await {
                 Ok(()) => (),

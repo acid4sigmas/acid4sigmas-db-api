@@ -9,6 +9,10 @@ use sqlx::PgPool;
 
 use acid4sigmas_models::db::TableModel;
 
+pub async fn async_db_hanlder(db_request: DatabaseRequest) {
+    
+}
+
 pub trait DbHandler {
     async fn new(db_request: DatabaseRequest) -> Result<Self>
     where
