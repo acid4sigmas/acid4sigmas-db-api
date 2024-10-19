@@ -49,7 +49,7 @@ async fn db_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, E
                 Ok(AggregatedMessage::Text(text)) => {
                     println!("request: {:?}", text);
                     match serde_json::from_str::<DatabaseRequest>(&text) {
-                        Ok(request) => {
+                        Ok(mut request) => {
                             if let Err(e) = request.validate() {
                                 let error_message = json!({
                                     "error": e.to_string()
@@ -83,7 +83,7 @@ async fn db_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, E
                             let db_handler_request = db_handler_request_result.unwrap();
 
                             if let Some(value) = db_handler_request {
-                                session.text(value.to_string()).await.unwrap();
+                                session.text(serde_json::to_string(&value).unwrap()).await.unwrap();
                             } else {
                                 let success_message = json!({"status": "success"});
                                 session.text(success_message.to_string()).await.unwrap();

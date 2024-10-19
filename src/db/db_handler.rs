@@ -13,11 +13,11 @@ pub trait DbHandler {
     async fn new(db_request: DatabaseRequest) -> Result<Self>
     where
         Self: Sized;
-    async fn handle_request(&self) -> Result<Option<serde_json::Value>>;
+    async fn handle_request(&self) -> Result<Option<Vec<serde_json::Value>>>;
     async fn insert(&self) -> Result<()>;
     async fn delete(&self) -> Result<()>;
     async fn update(&self) -> Result<()>;
-    async fn retrieve(&self) -> Result<Option<serde_json::Value>>;
+    async fn retrieve(&self) -> Result<Vec<serde_json::Value>>;
 }
 
 pub struct DatabaseHandler {
@@ -38,7 +38,7 @@ impl DbHandler for DatabaseHandler {
         Ok(Self { db_request, pool })
     }
 
-    async fn handle_request(&self) -> Result<Option<serde_json::Value>> {
+    async fn handle_request(&self) -> Result<Option<Vec<serde_json::Value>>> {
         match self.db_request.action {
             DatabaseAction::Insert => {
                 self.insert().await?;
@@ -52,10 +52,10 @@ impl DbHandler for DatabaseHandler {
             DatabaseAction::Retrieve => {
                 println!("retrieve");
                 let result = self.retrieve().await?;
-                if let None = result {
-                    return Err(anyhow!("no rows were returned."));
+                if result.is_empty() {
+                    return Err(anyhow!("no rows were returned"))
                 } else {
-                    return Ok(Some(result.unwrap()));
+                    return Ok(Some(result))
                 }
             }
         }
@@ -82,18 +82,21 @@ impl DbHandler for DatabaseHandler {
         Ok(())
     }
 
-    async fn retrieve(&self) -> Result<Option<serde_json::Value>> {
+    async fn retrieve(&self) -> Result<Vec<serde_json::Value>> {
         println!("receiving..");
 
         let table_name = &self.db_request.table;
         let pool = &self.pool;
 
-        let val: Option<Box<dyn TableModel + Send + Sync>> =
-            Retrieve::retrieve(pool, table_name, None).await;
+        let vals: Vec<Box<dyn TableModel + Send + Sync>> =
+            Retrieve::retrieve(pool, table_name, self.db_request.clone().filters).await?;
 
-        match val {
-            Some(value) => Ok(Some(value.as_value())),
-            None => Ok(None),
+        let mut res_vals: Vec<serde_json::Value> = Vec::new();
+
+        for val in vals {
+            res_vals.push(val.as_value());
         }
+
+        Ok(res_vals)
     }
 }
