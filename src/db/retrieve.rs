@@ -1,8 +1,7 @@
 use crate::cache::{CacheKey, CACHE_MANAGER};
 use crate::timer::Timer;
 use acid4sigmas_models::db::{ModelRegistry, TableModel};
-use acid4sigmas_models::models::db::Filters;
-use acid4sigmas_models::models::db::QueryBuilder;
+use acid4sigmas_models::models::db::{DatabaseAction, Filters, QueryBuilder};
 use anyhow::anyhow;
 use sqlx::postgres::PgRow;
 use sqlx::PgPool;
@@ -21,8 +20,14 @@ impl Retrieve {
 
         let timer = Timer::new();
 
-        let query_builder: (String, Vec<serde_json::Value>) =
-            QueryBuilder::new(table_name.to_string(), filters).build_query()?;
+        let query_builder: (String, Vec<serde_json::Value>) = QueryBuilder::new(
+            table_name.to_string(),
+            DatabaseAction::Retrieve,
+            None,
+            None,
+            filters,
+        )
+        .build_query()?;
 
         println!("{:?}", query_builder);
         let (query, params) = query_builder;

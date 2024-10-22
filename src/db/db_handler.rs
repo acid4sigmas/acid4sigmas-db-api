@@ -1,4 +1,4 @@
-use crate::db::retrieve::Retrieve;
+use crate::db::{retrieve::Retrieve, update::Update};
 
 use super::insert::Insert;
 use super::table::Table;
@@ -79,6 +79,12 @@ impl DbHandler for DatabaseHandler {
 
     async fn update(&self) -> Result<()> {
         println!("updating..");
+        let values = self.db_request.values.as_ref().unwrap();
+        let table_name = &self.db_request.table;
+        let pool = &self.pool;
+        let filters = self.db_request.filters.clone();
+
+        Update::update(pool, table_name, values.clone(), filters).await?;
         Ok(())
     }
 

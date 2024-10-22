@@ -2,6 +2,7 @@ pub mod db_handler;
 pub mod insert;
 pub mod retrieve;
 pub mod table;
+pub mod update;
 
 use crate::secrets::SECRETS;
 use anyhow::{Context, Result};

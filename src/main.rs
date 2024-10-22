@@ -37,8 +37,7 @@ async fn db_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, E
             Err(e) => return Ok(error_response!(403, e.to_string())),
         }
     } else {
-        println!("no token was provided");
-        return Ok(HttpResponse::Unauthorized().body("no token found"));
+        return Ok(error_response!(403, "no token found."));
     }
 
     let (res, mut session, stream) = actix_ws::handle(&req, stream)?;
