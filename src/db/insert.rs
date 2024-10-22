@@ -3,6 +3,8 @@ use serde_json::Value;
 use sqlx::PgPool;
 use std::collections::HashMap;
 
+use crate::cache::{CacheKey, CACHE_MANAGER};
+
 use super::table::Table;
 
 pub struct Insert;
@@ -52,10 +54,10 @@ impl Insert {
                                 } else {
                                     return Err(anyhow!("failed to convert {} to bigint", s));
                                 }
+                            } else if value.is_i64() || value.is_u64() {
+                                Value::Number(value.as_i64().unwrap().into())
                             } else {
-                                return Err(anyhow::anyhow!(
-                                    "expected string for bigint conversion"
-                                ));
+                                return Err(anyhow!("expected a string to convert to bigint"));
                             }
                         }
                         "text" => {
@@ -105,6 +107,10 @@ impl Insert {
 
         query_builder.execute(&mut *txn).await?;
         txn.commit().await?;
+
+        let cache_key_table = CacheKey::generate_table_cache_hash(&table_name);
+
+        CACHE_MANAGER.remove_by_prefix(&cache_key_table);
 
         Ok(())
     }

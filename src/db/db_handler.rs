@@ -7,11 +7,7 @@ use acid4sigmas_models::models::db::{DatabaseAction, DatabaseRequest};
 use anyhow::{anyhow, Context, Result};
 use sqlx::PgPool;
 
-use acid4sigmas_models::db::TableModel;
-
-pub async fn async_db_hanlder(db_request: DatabaseRequest) {
-    
-}
+//pub async fn async_db_hanlder(db_request: DatabaseRequest) {}
 
 pub trait DbHandler {
     async fn new(db_request: DatabaseRequest) -> Result<Self>
@@ -57,9 +53,9 @@ impl DbHandler for DatabaseHandler {
                 println!("retrieve");
                 let result = self.retrieve().await?;
                 if result.is_empty() {
-                    return Err(anyhow!("no rows were returned"))
+                    return Err(anyhow!("no rows were returned"));
                 } else {
-                    return Ok(Some(result))
+                    return Ok(Some(result));
                 }
             }
         }
@@ -92,15 +88,9 @@ impl DbHandler for DatabaseHandler {
         let table_name = &self.db_request.table;
         let pool = &self.pool;
 
-        let vals: Vec<Box<dyn TableModel + Send + Sync>> =
+        let vals: Vec<serde_json::Value> =
             Retrieve::retrieve(pool, table_name, self.db_request.clone().filters).await?;
 
-        let mut res_vals: Vec<serde_json::Value> = Vec::new();
-
-        for val in vals {
-            res_vals.push(val.as_value());
-        }
-
-        Ok(res_vals)
+        Ok(vals)
     }
 }
