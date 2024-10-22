@@ -12,14 +12,14 @@ This is why i decided to call it a hybrid database api, because some things like
 - predefined table schema
 - insert values into a table
 - receive values from a table
-- token based authentication using jwt
+- updating values in a table
+- filters for receiving values
+- token based authentication using jwt (provided by [acid4sigmas-models]("https://github.com/acid4sigmas/acid4sigmas-model"))
 
 
 ## What is expected?
-- updating values in a table
 - deleting values in a table
-- filters for receiving values
-- conditions for deleting/updating values in a table
+- ~~conditions for deleting/updating values in a table~~ provided by filters
 
 
 ## Get started.
