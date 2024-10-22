@@ -1,18 +1,24 @@
 use crate::db::db_handler::DatabaseHandler;
+use acid4sigmas_models::error_response;
 use acid4sigmas_models::models::db::DatabaseRequest;
+use acid4sigmas_models::utils::jwt::BackendClaims;
 use actix_web::{rt, web, App, Error, HttpRequest, HttpResponse, HttpServer};
 use actix_ws::AggregatedMessage;
 use db::db_handler::DbHandler;
 use futures_util::StreamExt as _;
+use secrets::SECRETS;
 use serde_json::json;
 use std::path::PathBuf;
 use tokio::time::sleep;
 use tokio::time::Duration;
 
+use acid4sigmas_models::utils::jwt::JwtToken;
+
+mod cache;
 mod db;
 mod secrets;
+mod timer;
 mod tokio_spawner;
-mod cache;
 
 async fn db_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, Error> {
     let query = req.query_string();
@@ -24,9 +30,11 @@ async fn db_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, E
             .map(|t| t.to_string());
 
     if let Some(token) = token {
-        if token != "secret-token-shhh" {
-            println!("invalid token {}", token);
-            return Ok(HttpResponse::Unauthorized().body("invalid token"));
+        let jwt_token = JwtToken::new(SECRETS.get("SECRET_KEY").unwrap());
+
+        match jwt_token.decode_jwt::<BackendClaims>(&token) {
+            Ok(_) => (),
+            Err(e) => return Ok(error_response!(403, e.to_string())),
         }
     } else {
         println!("no token was provided");
@@ -85,7 +93,10 @@ async fn db_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, E
                             let db_handler_request = db_handler_request_result.unwrap();
 
                             if let Some(value) = db_handler_request {
-                                session.text(serde_json::to_string(&value).unwrap()).await.unwrap();
+                                session
+                                    .text(serde_json::to_string(&value).unwrap())
+                                    .await
+                                    .unwrap();
                             } else {
                                 let success_message = json!({"status": "success"});
                                 session.text(success_message.to_string()).await.unwrap();
@@ -160,5 +171,7 @@ fn initialize_models() {
 
     registry.register::<User>();
 
-    MODEL_REGISTRY.set(registry).expect("failed to set registry");
+    MODEL_REGISTRY
+        .set(registry)
+        .expect("failed to set registry");
 }
