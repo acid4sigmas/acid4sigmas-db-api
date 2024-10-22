@@ -2,7 +2,7 @@ use crate::db::db_handler::DatabaseHandler;
 use acid4sigmas_models::error_response;
 use acid4sigmas_models::models::db::DatabaseRequest;
 use acid4sigmas_models::utils::jwt::BackendClaims;
-use actix_web::{rt, web, App, Error, HttpRequest, HttpResponse, HttpServer};
+use actix_web::{get, rt, web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_ws::AggregatedMessage;
 use db::db_handler::DbHandler;
 use futures_util::StreamExt as _;
@@ -139,6 +139,15 @@ async fn db_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, E
     Ok(res)
 }
 
+const INDEX_BODY: &str = include_str!("index.html");
+
+#[get("/")]
+async fn index() -> impl Responder {
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(INDEX_BODY)
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     initialize_models();
@@ -154,7 +163,7 @@ async fn main() -> std::io::Result<()> {
         }
     });
 
-    HttpServer::new(|| App::new().route("/db", web::get().to(db_ws)))
+    HttpServer::new(|| App::new().route("/db", web::get().to(db_ws)).service(index))
         .bind(("127.0.0.1", 3453))?
         .run()
         .await
