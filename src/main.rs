@@ -34,7 +34,10 @@ async fn db_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, E
 
         match jwt_token.decode_jwt::<BackendClaims>(&token) {
             Ok(_) => (),
-            Err(e) => return Ok(error_response!(403, e.to_string())),
+            Err(e) => {
+                println!("{:?}", e);
+                return Ok(error_response!(403, e.to_string()));
+            }
         }
     } else {
         return Ok(error_response!(403, "no token found."));
@@ -114,7 +117,7 @@ async fn db_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, E
                 }
 
                 Ok(AggregatedMessage::Ping(msg)) => {
-                    // respond to PING frame with PONG frame
+                    println!("heartbeat received");
                     session.pong(&msg).await.unwrap();
                 }
 
@@ -169,15 +172,17 @@ async fn main() -> std::io::Result<()> {
 }
 
 use acid4sigmas_models::db::ModelRegistry;
-use acid4sigmas_models::models::api::users::User;
+use acid4sigmas_models::models::{api::users::User, auth::AuthUser};
 use std::sync::OnceLock;
 
 pub static MODEL_REGISTRY: OnceLock<ModelRegistry> = OnceLock::new();
 
+// dont forget to register your structs!
 fn initialize_models() {
     let mut registry = ModelRegistry::new();
 
     registry.register::<User>();
+    registry.register::<AuthUser>();
 
     MODEL_REGISTRY
         .set(registry)

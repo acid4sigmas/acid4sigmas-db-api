@@ -67,13 +67,16 @@ impl Retrieve {
             .await
             .map_err(|e| anyhow!("Failed to fetch data: {}", e))?;
 
+
         let registry: &ModelRegistry = MODEL_REGISTRY
             .get()
             .expect("Model registry not initialized");
-
+            
         if let Some(entry) = registry.get(table_name) {
             let mut models: Vec<serde_json::Value> = Vec::new();
+
             for row in rows {
+                println!("row");
                 let model_instance: Box<dyn TableModel + Send + Sync> = (entry.factory)(&row); // call the factory to create the model
                 models.push(model_instance.as_value());
             }
