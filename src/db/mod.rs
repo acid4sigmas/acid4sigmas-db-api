@@ -4,7 +4,7 @@ pub mod retrieve;
 pub mod table;
 pub mod update;
 
-use crate::secrets::SECRETS;
+use acid4sigmas_models::secrets::{DB_NAME, DB_PORT, DB_PW};
 use anyhow::{Context, Result};
 use sqlx::PgPool;
 use std::fs;
@@ -18,9 +18,9 @@ impl Database {
     pub async fn new() -> Result<Self> {
         let url = format!(
             "postgresql://postgres:{}@localhost:{}/{}",
-            SECRETS.get("DB_PW").unwrap(),
-            SECRETS.get("DB_PORT").unwrap(),
-            SECRETS.get("DB_NAME").unwrap()
+            DB_PW.get().unwrap(),
+            DB_PORT.get().unwrap(),
+            DB_NAME.get().unwrap()
         );
 
         let pool = sqlx::postgres::PgPool::connect(&url).await?;

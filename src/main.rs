@@ -1,12 +1,14 @@
 use crate::db::db_handler::DatabaseHandler;
 use acid4sigmas_models::error_response;
 use acid4sigmas_models::models::db::DatabaseRequest;
+use acid4sigmas_models::secrets::init_secrets;
+use acid4sigmas_models::secrets::SECRET_KEY;
 use acid4sigmas_models::utils::jwt::BackendClaims;
 use actix_web::{get, rt, web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_ws::AggregatedMessage;
 use db::db_handler::DbHandler;
 use futures_util::StreamExt as _;
-use secrets::SECRETS;
+
 use serde_json::json;
 use std::path::PathBuf;
 use tokio::time::sleep;
@@ -16,7 +18,7 @@ use acid4sigmas_models::utils::jwt::JwtToken;
 
 mod cache;
 mod db;
-mod secrets;
+
 mod timer;
 mod tokio_spawner;
 
@@ -30,7 +32,7 @@ async fn db_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, E
             .map(|t| t.to_string());
 
     if let Some(token) = token {
-        let jwt_token = JwtToken::new(SECRETS.get("SECRET_KEY").unwrap());
+        let jwt_token = JwtToken::new(SECRET_KEY.get().unwrap());
 
         match jwt_token.decode_jwt::<BackendClaims>(&token) {
             Ok(_) => (),
@@ -147,6 +149,7 @@ async fn index() -> impl Responder {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    init_secrets("Secrets.toml"); // init all secrets
     initialize_models();
 
     tokio_spawner::TokioSpawner::spawn(async move {
