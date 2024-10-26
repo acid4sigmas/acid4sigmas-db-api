@@ -61,12 +61,17 @@ use std::collections::hash_map::DefaultHasher;
 pub struct CacheKey;
 
 impl CacheKey {
-    pub fn generate_cache_key(table_name: &str, query: &str) -> String {
+    pub fn generate_cache_key(
+        table_name: &str,
+        query: &str,
+        params: &[serde_json::Value],
+    ) -> String {
         let table_hash = Self::generate_table_cache_hash(table_name);
         let query_hash = Self::generate_query_cache_hash(query);
+        let params_hash = Self::generate_params_cache_hash(params);
 
+        format!("{}_{}_{}", table_hash, query_hash, params_hash)
         // combine the hashes
-        format!("{}_{}", table_hash, query_hash)
     }
 
     pub fn generate_table_cache_hash(table_name: &str) -> String {
@@ -81,5 +86,15 @@ impl CacheKey {
         query.hash(&mut query_hasher);
         let query_hash = query_hasher.finish().to_string();
         query_hash
+    }
+
+    fn generate_params_cache_hash(params: &[serde_json::Value]) -> String {
+        let mut params_hasher = DefaultHasher::new();
+
+        for param in params {
+            param.hash(&mut params_hasher);
+        }
+        let params_hash = params_hasher.finish().to_string();
+        params_hash
     }
 }

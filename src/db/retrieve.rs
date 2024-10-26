@@ -31,7 +31,7 @@ impl Retrieve {
 
         println!("{:?}", query_builder);
         let (query, params) = query_builder;
-        let cache_key_gen = CacheKey::generate_cache_key(&table_name, &query);
+        let cache_key_gen = CacheKey::generate_cache_key(&table_name, &query, &params);
 
         if let Some(cache) = CACHE_MANAGER.get(&cache_key_gen) {
             println!("value found in cache in {} µs", timer.elapsed_as_micros());
@@ -67,11 +67,10 @@ impl Retrieve {
             .await
             .map_err(|e| anyhow!("Failed to fetch data: {}", e))?;
 
-
         let registry: &ModelRegistry = MODEL_REGISTRY
             .get()
             .expect("Model registry not initialized");
-            
+
         if let Some(entry) = registry.get(table_name) {
             let mut models: Vec<serde_json::Value> = Vec::new();
 

@@ -92,17 +92,12 @@ async fn db_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, E
                                 continue;
                             }
 
-                            let db_handler_request = db_handler_request_result.unwrap();
+                            let db_handler_response = db_handler_request_result.unwrap();
 
-                            if let Some(value) = db_handler_request {
-                                session
-                                    .text(serde_json::to_string(&value).unwrap())
-                                    .await
-                                    .unwrap();
-                            } else {
-                                let success_message = json!({"status": "success"});
-                                session.text(success_message.to_string()).await.unwrap();
-                            }
+                            // Serialize DatabaseResponse and send it
+                            let response_text =
+                                serde_json::to_string(&db_handler_response).unwrap();
+                            session.text(response_text).await.unwrap();
                         }
                         Err(e) => {
                             let error_message = format!("Failed to parse request: {}", e);
