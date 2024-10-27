@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS auth_tokens (
     jti TEXT PRIMARY KEY,
     uid BIGINT NOT NULL,
-    expires_at TIMESTAMPTZ NOT NULL
+    expires_at BIGINT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS auth_users (
