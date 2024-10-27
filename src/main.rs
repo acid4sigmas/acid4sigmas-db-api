@@ -1,6 +1,8 @@
 use crate::db::db_handler::DatabaseHandler;
 use acid4sigmas_models::error_response;
+use acid4sigmas_models::models::auth::AuthTokens;
 use acid4sigmas_models::models::db::DatabaseRequest;
+use acid4sigmas_models::models::db::DatabaseResponse;
 use acid4sigmas_models::secrets::init_secrets;
 use acid4sigmas_models::secrets::SECRET_KEY;
 use acid4sigmas_models::utils::jwt::BackendClaims;
@@ -65,20 +67,24 @@ async fn db_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, E
                     match serde_json::from_str::<DatabaseRequest>(&text) {
                         Ok(mut request) => {
                             if let Err(e) = request.validate() {
-                                let error_message = json!({
-                                    "error": e.to_string()
-                                });
-                                session.text(error_message.to_string()).await.unwrap();
+                                let error_message: DatabaseResponse<serde_json::Value> =
+                                    DatabaseResponse::Error {
+                                        error: e.to_string(),
+                                    };
+                                let error_text = serde_json::to_string(&error_message).unwrap();
+                                session.text(error_text).await.unwrap();
                                 continue;
                             }
 
                             let db_handler_result = DatabaseHandler::new(request).await;
 
                             if let Err(e) = db_handler_result {
-                                let error_message = json!({
-                                    "error": e.to_string()
-                                });
-                                session.text(error_message.to_string()).await.unwrap();
+                                let error_message: DatabaseResponse<serde_json::Value> =
+                                    DatabaseResponse::Error {
+                                        error: e.to_string(),
+                                    };
+                                let error_text = serde_json::to_string(&error_message).unwrap();
+                                session.text(error_text).await.unwrap();
                                 continue;
                             }
 
@@ -87,10 +93,12 @@ async fn db_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, E
                             let db_handler_request_result = db_handler.handle_request().await;
 
                             if let Err(e) = db_handler_request_result {
-                                let error_message = json!({
-                                    "error": e.to_string()
-                                });
-                                session.text(error_message.to_string()).await.unwrap();
+                                let error_message: DatabaseResponse<serde_json::Value> =
+                                    DatabaseResponse::Error {
+                                        error: e.to_string(),
+                                    };
+                                let error_text = serde_json::to_string(&error_message).unwrap();
+                                session.text(error_text).await.unwrap();
                                 continue;
                             }
 
@@ -181,6 +189,7 @@ fn initialize_models() {
 
     registry.register::<User>();
     registry.register::<AuthUser>();
+    registry.register::<AuthTokens>();
 
     MODEL_REGISTRY
         .set(registry)
