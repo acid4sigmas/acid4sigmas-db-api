@@ -11,7 +11,6 @@ use actix_ws::AggregatedMessage;
 use db::db_handler::DbHandler;
 use futures_util::StreamExt as _;
 
-use serde_json::json;
 use std::path::PathBuf;
 use tokio::time::sleep;
 use tokio::time::Duration;
@@ -63,7 +62,6 @@ async fn db_ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, E
         while let Some(msg) = stream.next().await {
             match msg {
                 Ok(AggregatedMessage::Text(text)) => {
-                    println!("request: {:?}", text);
                     match serde_json::from_str::<DatabaseRequest>(&text) {
                         Ok(mut request) => {
                             if let Err(e) = request.validate() {
@@ -157,7 +155,7 @@ async fn index() -> impl Responder {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    init_secrets("Secrets.toml"); // init all secrets
+    let _ = init_secrets("Secrets.toml"); // init all secrets
     initialize_models();
 
     tokio_spawner::TokioSpawner::spawn(async move {

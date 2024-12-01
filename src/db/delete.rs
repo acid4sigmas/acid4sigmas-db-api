@@ -1,27 +1,27 @@
-use acid4sigmas_models::models::db::{BuildQuery, DatabaseAction, QueryBuilder, Values};
-use anyhow::Result;
+use acid4sigmas_models::models::db::{
+    BuildQuery, DatabaseAction, DeleteAction, Filters, QueryBuilder,
+};
 use serde_json::Value;
 use sqlx::PgPool;
 
-use crate::cache::{CacheKey, CACHE_MANAGER};
+pub struct Delete;
 
-use super::table::Table;
-
-pub struct Insert;
-
-impl Insert {
-    pub async fn insert(pool: &PgPool, table_name: &str, values: &Values) -> Result<()> {
-        let table_columns = Table::get_table_columns_and_types(&pool, &table_name).await?;
-
+impl Delete {
+    pub async fn delete(
+        pool: &PgPool,
+        table_name: &str,
+        delete_action: DeleteAction,
+        filters: Option<Filters>,
+    ) -> anyhow::Result<()> {
         let query_builder: BuildQuery = QueryBuilder::from(QueryBuilder {
             table: table_name.to_string(),
-            action: DatabaseAction::Insert,
-            values: Some(values.clone()),
-            table_columns: Some(table_columns),
+            action: DatabaseAction::Delete(delete_action),
+            filters,
             ..Default::default()
         })
         .build_query()?;
 
+        println!("{:?}", query_builder);
         let (query, params) = query_builder;
 
         let mut txn = pool.begin().await?;
@@ -39,15 +39,11 @@ impl Insert {
                 }
                 Value::Bool(b) => query_builder.bind(b),
                 _ => return Err(anyhow::anyhow!("Unsupported value type")),
-            };
+            }
         }
 
         query_builder.execute(&mut *txn).await?;
         txn.commit().await?;
-
-        let cache_key_table = CacheKey::generate_table_cache_hash(&table_name);
-
-        CACHE_MANAGER.remove_by_prefix(&cache_key_table);
 
         Ok(())
     }

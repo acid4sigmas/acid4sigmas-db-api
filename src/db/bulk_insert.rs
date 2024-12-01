@@ -1,26 +1,32 @@
-use acid4sigmas_models::models::db::{BuildQuery, DatabaseAction, QueryBuilder, Values};
+use acid4sigmas_models::models::db::{BuildQuery, BulkValues, DatabaseAction, QueryBuilder};
+
+use super::table::Table;
 use anyhow::Result;
 use serde_json::Value;
 use sqlx::PgPool;
 
 use crate::cache::{CacheKey, CACHE_MANAGER};
 
-use super::table::Table;
+pub struct BulkInsert;
 
-pub struct Insert;
-
-impl Insert {
-    pub async fn insert(pool: &PgPool, table_name: &str, values: &Values) -> Result<()> {
+impl BulkInsert {
+    pub async fn bulk_insert(
+        pool: &PgPool,
+        table_name: &str,
+        bulk_values: &BulkValues,
+    ) -> Result<()> {
         let table_columns = Table::get_table_columns_and_types(&pool, &table_name).await?;
 
         let query_builder: BuildQuery = QueryBuilder::from(QueryBuilder {
             table: table_name.to_string(),
-            action: DatabaseAction::Insert,
-            values: Some(values.clone()),
+            action: DatabaseAction::BulkInsert,
+            bulk_values: Some(bulk_values.clone()),
             table_columns: Some(table_columns),
             ..Default::default()
         })
         .build_query()?;
+
+        println!("Query: {:?}", query_builder);
 
         let (query, params) = query_builder;
 

@@ -1,11 +1,15 @@
-use crate::db::{retrieve::Retrieve, update::Update};
+use crate::db::{delete::Delete, retrieve::Retrieve, update::Update};
 
-use super::insert::Insert;
 use super::table::Table;
 use super::Database;
-use acid4sigmas_models::models::db::{DatabaseAction, DatabaseRequest, DatabaseResponse};
+use super::{bulk_insert::BulkInsert, insert::Insert};
+use acid4sigmas_models::models::db::{
+    DatabaseAction, DatabaseRequest, DatabaseResponse, DeleteAction,
+};
 use anyhow::{anyhow, Context, Result};
 use sqlx::PgPool;
+
+use serde_json::Value;
 
 //pub async fn async_db_hanlder(db_request: DatabaseRequest) {}
 
@@ -13,11 +17,12 @@ pub trait DbHandler {
     async fn new(db_request: DatabaseRequest) -> Result<Self>
     where
         Self: Sized;
-    async fn handle_request(&self) -> Result<DatabaseResponse<serde_json::Value>>;
-    async fn insert(&self) -> Result<DatabaseResponse<serde_json::Value>>;
-    async fn delete(&self) -> Result<DatabaseResponse<serde_json::Value>>;
-    async fn update(&self) -> Result<DatabaseResponse<serde_json::Value>>;
-    async fn retrieve(&self) -> Result<DatabaseResponse<serde_json::Value>>;
+    async fn handle_request(&self) -> Result<DatabaseResponse<Value>>;
+    async fn bulk_insert(&self) -> Result<DatabaseResponse<Value>>;
+    async fn insert(&self) -> Result<DatabaseResponse<Value>>;
+    async fn delete(&self, delete_action: DeleteAction) -> Result<DatabaseResponse<Value>>;
+    async fn update(&self) -> Result<DatabaseResponse<Value>>;
+    async fn retrieve(&self) -> Result<DatabaseResponse<Value>>;
 }
 
 pub struct DatabaseHandler {
@@ -39,15 +44,31 @@ impl DbHandler for DatabaseHandler {
     }
 
     async fn handle_request(&self) -> Result<DatabaseResponse<serde_json::Value>> {
-        match self.db_request.action {
+        match &self.db_request.action {
+            DatabaseAction::BulkInsert => self.bulk_insert().await,
             DatabaseAction::Insert => self.insert().await,
-            DatabaseAction::Delete => self.delete().await,
+            DatabaseAction::Delete(action) => self.delete(action.clone()).await, // clone value
             DatabaseAction::Update => self.update().await,
             DatabaseAction::Retrieve => self.retrieve().await,
         }
     }
 
-    async fn insert(&self) -> Result<DatabaseResponse<serde_json::Value>> {
+    async fn bulk_insert(&self) -> Result<DatabaseResponse<Value>> {
+        let bulk_values = self
+            .db_request
+            .bulk_values
+            .as_ref()
+            .ok_or_else(|| anyhow!("Missing values for insert"))?;
+        let table_name = &self.db_request.table;
+        let pool = &self.pool;
+
+        BulkInsert::bulk_insert(pool, table_name, bulk_values).await?;
+        Ok(DatabaseResponse::Status {
+            status: "Insert successful.".to_string(),
+        })
+    }
+
+    async fn insert(&self) -> Result<DatabaseResponse<Value>> {
         let values = self
             .db_request
             .values
@@ -61,7 +82,16 @@ impl DbHandler for DatabaseHandler {
             status: "Insert successful.".to_string(),
         })
     }
-    async fn delete(&self) -> Result<DatabaseResponse<serde_json::Value>> {
+    async fn delete(
+        &self,
+        delete_action: DeleteAction,
+    ) -> Result<DatabaseResponse<serde_json::Value>> {
+        let table_name = &self.db_request.table;
+        let pool = &self.pool;
+        let filters = self.db_request.filters.clone();
+
+        Delete::delete(pool, table_name, delete_action, filters).await?;
+
         println!("deleting..");
         // Implement your deletion logic here, returning an appropriate DatabaseResponse.
         Ok(DatabaseResponse::Status {

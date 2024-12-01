@@ -1,5 +1,5 @@
 use super::table::Table;
-use acid4sigmas_models::models::db::{DatabaseAction, Filters, QueryBuilder};
+use acid4sigmas_models::models::db::{BuildQuery, DatabaseAction, Filters, QueryBuilder};
 use serde_json::Value;
 use sqlx::PgPool;
 use std::collections::HashMap;
@@ -17,13 +17,14 @@ impl Update {
     ) -> anyhow::Result<()> {
         let table_columns = Table::get_table_columns_and_types(&pool, &table_name).await?;
 
-        let query_builder = QueryBuilder::new(
-            table_name.to_string(),
-            DatabaseAction::Update,
-            Some(values),
-            Some(table_columns),
+        let query_builder: BuildQuery = QueryBuilder::from(QueryBuilder {
+            table: table_name.to_string(),
+            action: DatabaseAction::Update,
+            values: Some(values.clone()),
+            table_columns: Some(table_columns),
             filters,
-        )
+            ..Default::default()
+        })
         .build_query()?;
 
         println!("{:?}", query_builder);

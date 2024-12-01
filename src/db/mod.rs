@@ -1,4 +1,6 @@
+pub mod bulk_insert;
 pub mod db_handler;
+pub mod delete;
 pub mod insert;
 pub mod retrieve;
 pub mod table;

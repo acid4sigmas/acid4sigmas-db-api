@@ -12,6 +12,7 @@ toml = "0.8.19"
 actix-ws = "0.3.0"
 futures-util = "0.3.31"
 lazy_static = "1.5.0"
-acid4sigmas-models = { git = "https://github.com/acid4sigmas/acid4sigmas-model" }
+acid4sigmas-models = { path = "/Users/klover/Documents/compare/acid4sigmas-model"}
 serde_json = "1.0.128"
 lru-cache = "0.1.2"
+async-trait = "0.1.83"
